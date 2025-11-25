@@ -11,8 +11,6 @@
               prefWidth="1280" prefHeight="720">
 
 
-
-
             <Button fx:id="pauseButton" text="Pause" onAction="#togglePause"
                     layoutX="280" layoutY="10" prefWidth="80" prefHeight="30"
                     style="-fx-background-color: #ff4444; -fx-text-fill: white;"/>
