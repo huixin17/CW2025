@@ -9,24 +9,22 @@ import com.comp2042.model.ViewData;
 import com.comp2042.view.ClearRow;
 
 /**
- * Main game controller that orchestrates gameplay logic.
- * Implements InputEventListener to handle player input events and coordinates
- * between the game board model and the GUI view. Manages power-ups, scoring,
- * skill points, and game state transitions.
- *
- * @author COMP2042 Coursework
+ * Controls the main gameplay flow.
+ * Connects user inputs, the board logic, and the GUI updates.
+ * Also handles scoring, power-ups, and transitions between game states.
  */
 public class GameController implements InputEventListener {
 
+    // Main game board instance (25 rows x 10 columns)
     private Board board = new SimpleBoard(25, 10);
 
     private final GuiController viewGuiController;
 
     /**
-     * Constructs a new GameController and initializes the game.
-     * Creates a new game board, sets up the GUI, and binds score/skill points.
+     * Sets up the controller and prepares the initial game state.
+     * Creates the first piece, links UI events, and binds score/skill point labels.
      *
-     * @param c the GuiController instance to coordinate with
+     * @param c the GUI controller that displays the game
      */
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -38,36 +36,38 @@ public class GameController implements InputEventListener {
     }
 
     /**
-     * Handles the down movement event (block falling).
-     * Moves the current brick down one row. If it can't move, merges it to the
-     * background, clears completed rows, awards points, and creates a new brick.
+     * Called whenever the piece falls down by one step.
+     * If the piece can’t move any further, it is locked in place,
+     * cleared rows are handled, and a new piece is spawned.
      *
-     * @param event the move event containing event source information
-     * @return DownData containing clear row information and updated view data
+     * @return DownData including removed line info and updated view
      */
     @Override
     public DownData onDownEvent(MoveEvent event) {
         boolean canMove = board.moveBrickDown();
         ClearRow clearRow = null;
+
         if (!canMove) {
+            // Piece has landed; merge into the grid
             board.mergeBrickToBackground();
             clearRow = board.clearRows();
+
             if (clearRow.getLinesRemoved() > 0) {
                 int bonus = clearRow.getScoreBonus();
                 board.getScore().add(bonus);
-                // Award skill points (1 point per 10 score)
-                getPowerUpManager().awardSkillPoints(bonus);
+                getPowerUpManager().awardSkillPoints(bonus); // skill points based on score
             }
+
+            // Check if new brick leads to game over
             if (board.createNewBrick()) {
                 viewGuiController.gameOver();
             }
 
             viewGuiController.refreshGameBackground(board.getBoardMatrix());
-
         } else {
+            // Reward player for manual soft-drop
             if (event.getEventSource() == EventSource.USER) {
                 board.getScore().add(1);
-                // Award skill points
                 getPowerUpManager().awardSkillPoints(1);
             }
         }
@@ -75,39 +75,21 @@ public class GameController implements InputEventListener {
         return new DownData(clearRow, board.getViewData());
     }
 
-    /**
-     * Handles the left movement event.
-     * Moves the current brick one position to the left.
-     *
-     * @param event the move event
-     * @return ViewData containing the updated brick position
-     */
+    /** Moves the active piece one column to the left. */
     @Override
     public ViewData onLeftEvent(MoveEvent event) {
         board.moveBrickLeft();
         return board.getViewData();
     }
 
-    /**
-     * Handles the right movement event.
-     * Moves the current brick one position to the right.
-     *
-     * @param event the move event
-     * @return ViewData containing the updated brick position
-     */
+    /** Moves the active piece one column to the right. */
     @Override
     public ViewData onRightEvent(MoveEvent event) {
         board.moveBrickRight();
         return board.getViewData();
     }
 
-    /**
-     * Handles the rotation event.
-     * Rotates the current brick counter-clockwise.
-     *
-     * @param event the move event
-     * @return ViewData containing the updated brick rotation
-     */
+    /** Rotates the piece counter-clockwise. */
     @Override
     public ViewData onRotateEvent(MoveEvent event) {
         board.rotateLeftBrick();
@@ -115,31 +97,23 @@ public class GameController implements InputEventListener {
     }
 
     /**
-     * Handles the hard drop event (instant drop to bottom).
-     * Instantly drops the brick to the lowest possible position, awards bonus
-     * points based on drop distance, and processes any bomb effects.
-     *
-     * @param event the move event
-     * @return DownData containing clear row information and updated view data
+     * Handles hard-drop: instantly sends the piece to the lowest valid row.
+     * Extra points are awarded based on how far the brick drops.
      */
     @Override
     public DownData onHardDropEvent(MoveEvent event) {
-        // Hard drop: instantly drop the brick to the bottom
-        // Calculate drop distance before dropping for scoring
         int dropDistance = ((SimpleBoard) board).getHardDropDistance();
         boolean dropped = board.hardDropBrick();
+
         if (dropped) {
-            // Give score bonus based on drop distance (2 points per row dropped)
-            int bonus = dropDistance * 2;
+            int bonus = dropDistance * 2;  // scoring rule
             board.getScore().add(bonus);
-            // Award skill points
             getPowerUpManager().awardSkillPoints(bonus);
         }
 
-        // Now merge the brick and process
         board.mergeBrickToBackground();
 
-        // Check if bomb effect should be shown (only on hard drop)
+        // Show explosion animation for bomb-type pieces
         SimpleBoard simpleBoard = (SimpleBoard) board;
         if (simpleBoard.shouldShowBombEffect()) {
             viewGuiController.showBoomEffect(simpleBoard.getBombEffectX(), simpleBoard.getBombEffectY());
@@ -150,9 +124,9 @@ public class GameController implements InputEventListener {
         if (clearRow.getLinesRemoved() > 0) {
             int bonus = clearRow.getScoreBonus();
             board.getScore().add(bonus);
-            // Award skill points
             getPowerUpManager().awardSkillPoints(bonus);
         }
+
         if (board.createNewBrick()) {
             viewGuiController.gameOver();
         }
@@ -162,12 +136,7 @@ public class GameController implements InputEventListener {
     }
 
     /**
-     * Handles the hold event (store current brick).
-     * Stores the current brick in the hold slot and retrieves the previously
-     * held brick if available.
-     *
-     * @param event the move event
-     * @return ViewData containing the updated brick (held or new)
+     * Stores the current piece and swaps with the previously held piece (if any).
      */
     @Override
     public ViewData onHoldEvent(MoveEvent event) {
@@ -176,8 +145,7 @@ public class GameController implements InputEventListener {
     }
 
     /**
-     * Creates a new game by resetting the board.
-     * Clears the game board and initializes a fresh game state.
+     * Resets the entire game and starts from a clean board.
      */
     @Override
     public void createNewGame() {
@@ -185,66 +153,49 @@ public class GameController implements InputEventListener {
         viewGuiController.refreshGameBackground(board.getBoardMatrix());
     }
 
-    /**
-     * Gets the PowerUpManager instance from the board.
-     *
-     * @return the PowerUpManager managing power-up inventory and purchases
-     */
+    /** Shortcut to the PowerUpManager stored inside the board. */
     public com.comp2042.model.PowerUpManager getPowerUpManager() {
         return ((SimpleBoard) board).getPowerUpManager();
     }
 
-    /**
-     * Gets the game board instance.
-     *
-     * @return the Board instance managing game state
-     */
+    /** Returns the current board instance. */
     public Board getBoard() {
         return board;
     }
 
     /**
-     * Purchases a power-up using skill points.
-     *
-     * @param powerUp the power-up to purchase
-     * @return true if purchase was successful, false if insufficient skill points
+     * Attempts to purchase a power-up using available skill points.
      */
     public boolean purchasePowerUp(PowerUp powerUp) {
         return getPowerUpManager().purchasePowerUp(powerUp);
     }
 
     /**
-     * Activates a power-up if available in inventory.
-     * Handles different power-up types: row clearer, slow motion, and bomb piece.
+     * Uses a power-up from the player's inventory and applies its effect.
      *
-     * @param powerUp the power-up to activate
-     * @return true if activation was successful, false if power-up not available
+     * - ROW_CLEARER → removes bottom rows
+     * - SLOW_MOTION → slows falling speed
+     * - BOMB_PIECE → next piece becomes a bomb
      */
     public boolean activatePowerUp(PowerUp powerUp) {
-        // Check if player has the power-up
         if (!getPowerUpManager().usePowerUp(powerUp)) {
             return false;
         }
 
         switch (powerUp) {
             case ROW_CLEARER:
-                // Clear bottom 3 rows
                 boolean cleared = ((SimpleBoard) board).clearRowsPowerUp(3);
                 if (cleared) {
-                    // Refresh the game view
                     viewGuiController.refreshGameBackground(board.getBoardMatrix());
                     viewGuiController.refreshBrick(board.getViewData());
                 }
                 return cleared;
 
             case SLOW_MOTION:
-                // Slow motion is handled by GuiController.applySlowMotion()
                 viewGuiController.applySlowMotion();
                 return true;
 
             case BOMB_PIECE:
-                // Mark the next piece as a bomb piece
-                // The bomb will explode when the piece lands
                 ((SimpleBoard) board).setBombPiece(true);
                 return true;
 

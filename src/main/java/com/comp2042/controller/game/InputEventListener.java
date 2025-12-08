@@ -4,65 +4,62 @@ import com.comp2042.model.DownData;
 import com.comp2042.model.ViewData;
 
 /**
- * Interface for handling player input events in the game.
- * Defines methods for processing all types of player actions including movement,
- * rotation, hard drop, hold, and game creation. Implementations process these
- * events and return updated game state data.
- *
- * @author COMP2042 Coursework
+ * Interface used by the game controller to react to player inputs.
+ * Each method represents a specific in-game action such as moving,
+ * rotating, dropping, or starting a new session.
  */
 public interface InputEventListener {
 
     /**
-     * Handles a downward movement event (brick falling).
+     * Triggered when the piece attempts to move one row down.
      *
-     * @param event the move event containing event source information
-     * @return DownData containing line clearing info and updated view data
+     * @param event details about the movement request
+     * @return DownData with any cleared lines and updated piece view
      */
     DownData onDownEvent(MoveEvent event);
 
     /**
-     * Handles a left movement event.
+     * Moves the active piece one space to the left.
      *
-     * @param event the move event
-     * @return ViewData containing updated brick position
+     * @param event movement info
+     * @return updated view of the piece
      */
     ViewData onLeftEvent(MoveEvent event);
 
     /**
-     * Handles a right movement event.
+     * Moves the active piece one space to the right.
      *
-     * @param event the move event
-     * @return ViewData containing updated brick position
+     * @param event movement info
+     * @return updated view of the piece
      */
     ViewData onRightEvent(MoveEvent event);
 
     /**
-     * Handles a rotation event.
+     * Rotates the current piece.
      *
-     * @param event the move event
-     * @return ViewData containing updated brick rotation
+     * @param event movement info
+     * @return updated rotation data for the piece
      */
     ViewData onRotateEvent(MoveEvent event);
 
     /**
-     * Handles a hard drop event (instant drop to bottom).
+     * Performs a hard drop (piece falls directly to the bottom).
      *
-     * @param event the move event
-     * @return DownData containing line clearing info and updated view data
+     * @param event movement info
+     * @return DownData with updated board state after landing
      */
     DownData onHardDropEvent(MoveEvent event);
 
     /**
-     * Handles a hold event (store current brick).
+     * Stores the current piece in the hold slot or swaps with the held one.
      *
-     * @param event the move event
-     * @return ViewData containing updated brick (held or new)
+     * @param event movement info
+     * @return updated view after holding or swapping
      */
     ViewData onHoldEvent(MoveEvent event);
 
     /**
-     * Creates a new game by resetting the board.
+     * Resets the game board and starts a new game session.
      */
     void createNewGame();
 }

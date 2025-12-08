@@ -11,41 +11,56 @@ import java.util.ResourceBundle;
 
 /**
  * Main entry point for the Tetris JavaFX application.
- * Initializes the JavaFX application, loads the FXML layout, and displays
- * the main game window. The game controller is initialized via FXML.
+ * This class extends {@code javafx.application.Application} and implements the standard
+ * JavaFX lifecycle methods to initialize and display the game window.
  *
  * @author COMP2042 Coursework
  */
 public class Main extends Application {
 
     /**
-     * Starts the JavaFX application.
-     * Loads the game layout from FXML and displays the main window.
+     * The primary entry method for all JavaFX applications. This method is called
+     * after the application is initialized and is responsible for setting up the
+     * primary stage and scene, and loading the user interface layout from FXML.
      *
-     * @param primaryStage the primary stage for the application
-     * @throws Exception if FXML loading fails
+     * @param primaryStage The primary stage (window) of the application, provided by the JavaFX runtime.
+     * @throws Exception if the FXML file fails to load or if any initialization error occurs.
      */
     @Override
     public void start(Stage primaryStage) throws Exception {
 
+        // 1. Locate the FXML layout file
         URL location = getClass().getClassLoader().getResource("gameLayout.fxml");
-        ResourceBundle resources = null;
-        FXMLLoader fxmlLoader = new FXMLLoader(location, resources);
-        Parent root = fxmlLoader.load();
-        // Controller is initialized via FXML, game starts when user clicks Start button
+        ResourceBundle resources = null; // Resource bundle for localization, typically null for simple apps
 
+        // 2. Initialize the FXMLLoader to load the scene graph from the FXML file
+        FXMLLoader fxmlLoader = new FXMLLoader(location, resources);
+
+        // 3. Load the root node of the scene graph
+        Parent root = fxmlLoader.load();
+        // Note: The controller associated with 'gameLayout.fxml' is automatically
+        // instantiated and wired up by the FXMLLoader at this point.
+
+        // 4. Configure the primary stage
         primaryStage.setTitle("TetrisJFX");
+
+        // 5. Create the Scene with the loaded root node and initial dimensions
+        // Dimensions set for a typical Tetris game board display
         Scene scene = new Scene(root, 300, 510);
         primaryStage.setScene(scene);
+
+        // 6. Display the stage
         primaryStage.show();
-        // Game will be initialized when user clicks Start
+        // The game logic will typically be initiated by a user action (e.g., clicking a "Start" button)
+        // within the FXML's associated controller.
     }
 
 
     /**
-     * Main method to launch the JavaFX application.
+     * Main method required for standard Java applications. It is used to launch the
+     * JavaFX application by calling {@code Application.launch()}.
      *
-     * @param args command line arguments (not used)
+     * @param args Command line arguments (not used in this application).
      */
     public static void main(String[] args) {
         launch(args);

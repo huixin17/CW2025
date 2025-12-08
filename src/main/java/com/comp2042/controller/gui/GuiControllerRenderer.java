@@ -12,38 +12,41 @@ import com.comp2042.model.MatrixOperations;
 import com.comp2042.model.ViewData;
 
 /**
- * Handles rendering logic for GuiController.
- * Manages all visual rendering including the game board, current brick, next piece
- * preview, hold piece preview, ghost piece projection, and board centering calculations.
- * Extracted from GuiController to apply Single Responsibility Principle.
+ * Manages all visual rendering aspects for the Tetris game GUI.
+ * Handles the display of the main game board, the active falling brick,
+ * piece previews, the ghost piece projection, and board sizing/positioning.
  *
  * @author COMP2042 Coursework
  */
 class GuiControllerRenderer {
 
+    // Defines the uniform size (in pixels) for all individual blocks.
     private static final int BRICK_SIZE = 22;
 
     private final GuiController guiController;
 
     /**
-     * Constructs a new GuiControllerRenderer.
+     * Constructs the renderer, linking it to the controlling instance.
      *
-     * @param guiController the GuiController instance to render for
+     * @param guiController the GuiController instance managing the game state
      */
     GuiControllerRenderer(GuiController guiController) {
         this.guiController = guiController;
     }
 
     /**
-     * Initializes the game view with the board matrix and current brick.
-     * Sets up the display matrix and renders the initial game state.
+     * Initializes the entire game view based on the starting state.
+     * Sets up the display matrices for the board and the current brick,
+     * configures the size of the game panel, and renders initial previews.
      *
-     * @param boardMatrix the 2D array representing the game board
-     * @param brick the current brick's view data
+     * @param boardMatrix the 2D array representing the game board (including hidden rows)
+     * @param brick the initial active brick's view data
      */
     void initGameView(int[][] boardMatrix, ViewData brick) {
         guiController.currentBoardMatrix = boardMatrix;
         guiController.displayMatrix = new Rectangle[boardMatrix.length][boardMatrix[0].length];
+
+        // Initialize Rectangles for the visible board area (starting at row index 2)
         for (int i = 2; i < boardMatrix.length; i++) {
             for (int j = 0; j < boardMatrix[i].length; j++) {
                 Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
@@ -53,6 +56,7 @@ class GuiControllerRenderer {
             }
         }
 
+        // Calculate and set the preferred size of the main game panel
         int cols = boardMatrix[0].length;
         int rowsVisible = boardMatrix.length - 2;
         double w = cols * BRICK_SIZE + (cols - 1) * guiController.gamePanel.getHgap();
@@ -62,6 +66,7 @@ class GuiControllerRenderer {
         guiController.gamePanel.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         guiController.gamePanel.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
+        // Initialize Rectangles for the current active brick
         guiController.rectangles = new Rectangle[brick.getBrickData().length][brick.getBrickData()[0].length];
         for (int i = 0; i < brick.getBrickData().length; i++) {
             for (int j = 0; j < brick.getBrickData()[i].length; j++) {
@@ -72,11 +77,11 @@ class GuiControllerRenderer {
             }
         }
 
-        // Create shadow panel for ghost preview
+        // Create and set up the shadow panel for ghost piece projection
         guiController.shadowPanel = new GridPane();
         guiController.shadowPanel.setHgap(guiController.brickPanel.getHgap());
         guiController.shadowPanel.setVgap(guiController.brickPanel.getVgap());
-        guiController.shadowPanel.setMouseTransparent(true); // Don't block mouse events
+        guiController.shadowPanel.setMouseTransparent(true);
         int[][] brickData = brick.getBrickData();
         if (brickData != null && brickData.length > 0 && brickData[0].length > 0) {
             guiController.shadowRectangles = new Rectangle[brickData.length][brickData[0].length];
@@ -92,39 +97,59 @@ class GuiControllerRenderer {
                 }
             }
         }
-        // Add shadow panel to the same parent as brickPanel
+
+        // Add shadow panel to the main root pane for absolute positioning
         Pane root = (Pane) guiController.gameBoard.getParent();
         if (root != null && !root.getChildren().contains(guiController.shadowPanel)) {
             root.getChildren().add(guiController.shadowPanel);
         }
 
+        // Set initial absolute position of the falling brick
         Point2D origin = gamePanelOriginInRoot();
         guiController.brickPanel.setLayoutX(origin.getX() + brick.getxPosition() * guiController.brickPanel.getVgap() + brick.getxPosition() * BRICK_SIZE);
         int displayRow = brick.getyPosition() - 2;
         guiController.brickPanel.setLayoutY(origin.getY() + displayRow * (guiController.brickPanel.getHgap() + BRICK_SIZE));
 
+        // Initial rendering of auxiliary views
         renderNextPreview(brick.getNextBrickData());
         renderHoldPreview(brick.getHeldBrickData());
         updateShadow(brick);
     }
 
+    /**
+     * Updates the position and appearance of the active falling brick.
+     * This method is called during the game loop if the game is not paused.
+     *
+     * @param brick The updated view data of the current brick.
+     */
     void refreshBrick(ViewData brick) {
         if (guiController.isPause.getValue() == Boolean.FALSE) {
+            // Update brick position
             Point2D origin = gamePanelOriginInRoot();
             guiController.brickPanel.setLayoutX(origin.getX() + brick.getxPosition() * guiController.brickPanel.getVgap() + brick.getxPosition() * BRICK_SIZE);
             int displayRow = brick.getyPosition() - 2;
             guiController.brickPanel.setLayoutY(origin.getY() + displayRow * (guiController.brickPanel.getHgap() + BRICK_SIZE));
+
+            // Update brick block data (color, rotation)
             for (int i = 0; i < brick.getBrickData().length; i++) {
                 for (int j = 0; j < brick.getBrickData()[i].length; j++) {
                     setRectangleData(brick.getBrickData()[i][j], guiController.rectangles[i][j]);
                 }
             }
+
+            // Refresh auxiliary views
             renderNextPreview(brick.getNextBrickData());
             renderHoldPreview(brick.getHeldBrickData());
             updateShadow(brick);
         }
     }
 
+    /**
+     * Updates the static background of the game board.
+     * This is called when lines are cleared or a piece locks into place.
+     *
+     * @param board The updated 2D board matrix.
+     */
     void refreshGameBackground(int[][] board) {
         guiController.currentBoardMatrix = board;
         for (int i = 2; i < board.length && i < guiController.displayMatrix.length; i++) {
@@ -136,6 +161,12 @@ class GuiControllerRenderer {
         }
     }
 
+    /**
+     * Maps the integer color ID (from model) to a JavaFX Paint object.
+     *
+     * @param i The integer ID representing the brick type (0 for empty).
+     * @return The corresponding JavaFX Color.
+     */
     private Paint getFillColor(int i) {
         switch (i) {
             case 0: return Color.TRANSPARENT;
@@ -150,34 +181,48 @@ class GuiControllerRenderer {
         }
     }
 
+    /**
+     * Applies the fill color, arc properties, and a glow effect to a Rectangle.
+     *
+     * @param color The integer color ID.
+     * @param rectangle The Rectangle instance to style.
+     */
     private void setRectangleData(int color, Rectangle rectangle) {
         rectangle.setFill(getFillColor(color));
         rectangle.setArcHeight(0);
         rectangle.setArcWidth(0);
 
-        // Add glow effect
-        if (color != 0) { // Only glow non-transparent bricks
+        // Apply glow effect for non-empty bricks
+        if (color != 0) {
             javafx.scene.effect.Glow glow = new javafx.scene.effect.Glow();
-            glow.setLevel(0.6); // Adjust between 0.0 (no glow) and 1.0 (maximum glow)
+            glow.setLevel(0.6);
             rectangle.setEffect(glow);
         } else {
-            rectangle.setEffect(null); // No glow for transparent bricks
+            rectangle.setEffect(null); // Remove effect for transparent bricks
         }
     }
 
+    /**
+     * Calculates the row position where the current brick will land (the ghost piece position).
+     *
+     * @param brickData The shape of the current brick.
+     * @param x The current column position.
+     * @param y The current row position.
+     * @return The final row index where the brick will stop.
+     */
     private int calculateDropPosition(int[][] brickData, int x, int y) {
         if (guiController.currentBoardMatrix == null) return y;
 
         int dropY = y;
-        // Simulate dropping the brick until it hits something
+        // Simulate downward movement until a collision is detected
         while (true) {
             int testY = dropY + 1;
-            // Check if the brick would collide at testY position
+            // Check collision with existing blocks or the floor
             if (MatrixOperations.intersect(guiController.currentBoardMatrix, brickData, x, testY)) {
-                break; // Found collision, stop here
+                break; // Collision found
             }
             dropY = testY;
-            // Safety check to prevent infinite loop
+            // Loop termination safety check
             if (dropY >= guiController.currentBoardMatrix.length) {
                 break;
             }
@@ -185,6 +230,11 @@ class GuiControllerRenderer {
         return dropY;
     }
 
+    /**
+     * Updates the visibility, shape, and position of the shadow (ghost) piece.
+     *
+     * @param brick The current active brick's view data.
+     */
     private void updateShadow(ViewData brick) {
         if (guiController.shadowPanel == null || guiController.currentBoardMatrix == null) {
             return;
@@ -193,7 +243,7 @@ class GuiControllerRenderer {
         int[][] brickData = brick.getBrickData();
         int dropY = calculateDropPosition(brickData, brick.getxPosition(), brick.getyPosition());
 
-        // Only show shadow if it's different from current position and below the current position
+        // Hide shadow if the drop position is the same as the current position or above
         if (dropY <= brick.getyPosition()) {
             guiController.shadowPanel.setVisible(false);
             return;
@@ -201,14 +251,14 @@ class GuiControllerRenderer {
 
         guiController.shadowPanel.setVisible(true);
 
-        // Check if shadow rectangles array needs to be resized
+        // Recreate shadow Rectangles if the brick shape/size has changed (due to rotation)
         if (brickData == null || brickData.length == 0 || brickData[0].length == 0) {
             guiController.shadowPanel.setVisible(false);
             return;
         }
         if (guiController.shadowRectangles == null || guiController.shadowRectangles.length != brickData.length ||
                 (brickData.length > 0 && (guiController.shadowRectangles[0] == null || guiController.shadowRectangles[0].length != brickData[0].length))) {
-            // Recreate shadow rectangles if size changed
+
             guiController.shadowPanel.getChildren().clear();
             guiController.shadowRectangles = new Rectangle[brickData.length][brickData[0].length];
             for (int i = 0; i < brickData.length; i++) {
@@ -224,7 +274,7 @@ class GuiControllerRenderer {
             }
         }
 
-        // Update shadow rectangles to match brick shape - all grey color (darker)
+        // Apply visibility and fixed shadow styling to the ghost piece
         Color shadowGrey = Color.DARKGRAY;
         Color shadowStroke = Color.BLACK;
         for (int i = 0; i < brickData.length; i++) {
@@ -232,7 +282,6 @@ class GuiControllerRenderer {
                 Rectangle shadowRect = guiController.shadowRectangles[i][j];
                 if (shadowRect != null) {
                     if (brickData[i][j] != 0) {
-                        // Show shadow for non-empty cells - use grey for all blocks
                         shadowRect.setVisible(true);
                         shadowRect.setFill(shadowGrey);
                         shadowRect.setStroke(shadowStroke);
@@ -243,16 +292,21 @@ class GuiControllerRenderer {
             }
         }
 
-        // Position shadow panel at drop location
+        // Position the shadow panel at the calculated drop location
         Point2D origin = gamePanelOriginInRoot();
         guiController.shadowPanel.setLayoutX(origin.getX() + brick.getxPosition() * guiController.shadowPanel.getVgap() + brick.getxPosition() * BRICK_SIZE);
         int displayRow = dropY - 2;
         guiController.shadowPanel.setLayoutY(origin.getY() + displayRow * (guiController.shadowPanel.getHgap() + BRICK_SIZE));
 
-        // Ensure shadow is behind the brick but visible
+        // Ensure the shadow remains behind the active brick
         guiController.shadowPanel.toBack();
     }
 
+    /**
+     * Clears and redraws the 'Next Piece' preview panel based on the data provided.
+     *
+     * @param next The 2D array representing the next brick's shape.
+     */
     private void renderNextPreview(int[][] next) {
         if (next == null || next.length == 0) return;
         guiController.nextPanel.getChildren().clear();
@@ -260,18 +314,24 @@ class GuiControllerRenderer {
         for (int i = 0; i < next.length; i++) {
             for (int j = 0; j < next[i].length; j++) {
                 Rectangle r = new Rectangle(BRICK_SIZE, BRICK_SIZE);
-                r.setFill(getFillColor(next[i][j]));
+                setRectangleData(next[i][j], r);
                 guiController.nextPreview[i][j] = r;
                 guiController.nextPanel.add(r, j, i);
             }
         }
     }
 
+    /**
+     * Clears and redraws the 'Held Piece' preview panel.
+     * Renders a placeholder grid if no piece is currently held.
+     *
+     * @param hold The 2D array representing the held brick's shape.
+     */
     private void renderHoldPreview(int[][] hold) {
         if (guiController.holdPanel == null) return;
         guiController.holdPanel.getChildren().clear();
         if (hold == null || hold.length == 0) {
-            // No held piece, show empty placeholder (4x4 grid of transparent/empty cells)
+            // Show empty placeholder (4x4 grid of transparent cells)
             guiController.holdPreview = new Rectangle[4][4];
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
@@ -285,17 +345,26 @@ class GuiControllerRenderer {
             }
             return;
         }
+
+        // Render the actual held piece
         guiController.holdPreview = new Rectangle[hold.length][hold[0].length];
         for (int i = 0; i < hold.length; i++) {
             for (int j = 0; j < hold[i].length; j++) {
                 Rectangle r = new Rectangle(BRICK_SIZE, BRICK_SIZE);
-                r.setFill(getFillColor(hold[i][j]));
+                setRectangleData(hold[i][j], r);
                 guiController.holdPreview[i][j] = r;
                 guiController.holdPanel.add(r, j, i);
             }
         }
     }
 
+    /**
+     * Calculates the absolute screen coordinates of the gamePanel's top-left corner
+     * relative to the root container. This is necessary for absolute positioning
+     * of the floating brick and shadow panels.
+     *
+     * @return The Point2D coordinate of the gamePanel origin within the root pane.
+     */
     private Point2D gamePanelOriginInRoot() {
         Pane root = (Pane) guiController.gameBoard.getParent();
         Point2D scenePt = guiController.gamePanel.localToScene(0, 0);

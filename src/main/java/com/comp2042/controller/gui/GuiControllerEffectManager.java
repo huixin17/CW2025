@@ -7,11 +7,10 @@ import javafx.scene.control.Label;
 import javafx.util.Duration;
 
 /**
- * Manages visual effects for GuiController.
- * Handles boom/explosion effects for bomb power-ups and board centering calculations.
- * Extracted from GuiController to apply Single Responsibility Principle.
- *
- * @author COMP2042 Coursework
+ * Handles all visual effects used by the GUI layer.
+ * This helper class focuses purely on animations such as explosions
+ * and layout adjustments, keeping GuiController cleaner and more focused
+ * on gameplay logic and interaction.
  */
 class GuiControllerEffectManager {
 
@@ -20,17 +19,18 @@ class GuiControllerEffectManager {
     private final GuiController guiController;
 
     /**
-     * Constructs a new GuiControllerEffectManager.
+     * Creates an effect manager that works alongside the main GUI controller.
      *
-     * @param guiController the GuiController instance to manage effects for
+     * @param guiController the controller that owns the board and visual elements
      */
     GuiControllerEffectManager(GuiController guiController) {
         this.guiController = guiController;
     }
 
     /**
-     * Centers the game board within its parent container.
-     * Calculates the optimal position to center the board both horizontally and vertically.
+     * Repositions the game board so that it appears centered inside its parent
+     * container. The method measures the board and its parent and calculates the
+     * correct layout offsets horizontally and vertically.
      */
     void centerGameBoard() {
         javafx.scene.layout.Pane root = (javafx.scene.layout.Pane) guiController.gameBoard.getParent();
@@ -44,37 +44,41 @@ class GuiControllerEffectManager {
         guiController.gameBoard.setLayoutY(y);
     }
 
+    /**
+     * Displays a short explosion animation at the given grid coordinates.
+     * Converts grid positions into screen space, creates a temporary "BOOM!"
+     * label, and plays a scaling and fading sequence before removing it.
+     *
+     * @param gridX column index of the explosion
+     * @param gridY row index of the explosion (includes hidden top rows)
+     */
     void showBoomEffect(int gridX, int gridY) {
         if (guiController.gameBoard == null || guiController.boardStack == null) return;
 
         // Convert grid coordinates to screen coordinates
-        // gridX is column (0-9), gridY is row (0-24, visible rows start at 2)
         double cellW = BRICK_SIZE + guiController.gamePanel.getHgap();
         double cellH = BRICK_SIZE + guiController.gamePanel.getVgap();
 
-        // Calculate position relative to boardStack
-        // gridY needs to account for the 2 hidden rows at top
-        double x = gridX * cellW + cellW / 2; // Center of the cell
-        double y = (gridY - 2) * cellH + cellH / 2; // Center of the cell (accounting for 2 hidden rows)
+        // Adjust for two hidden rows at the top
+        double x = gridX * cellW + cellW / 2;
+        double y = (gridY - 2) * cellH + cellH / 2;
 
-        // Create BOOM! label
+        // Explosion label
         Label boomLabel = new Label("BOOM!");
         boomLabel.setStyle(
                 "-fx-font-size: 48px; " +
                         "-fx-font-weight: bold; " +
-                        "-fx-text-fill: #FF4500; " + // Orange-red color
+                        "-fx-text-fill: #FF4500; " +
                         "-fx-effect: dropshadow(gaussian, rgba(255,69,0,0.9), 15, 0.8, 0, 4);"
         );
 
-        // Position it at the explosion location (relative to boardStack)
-        boomLabel.setLayoutX(x - 60); // Center the text (approx half width)
-        boomLabel.setLayoutY(y - 24); // Center the text (approx half height)
+        boomLabel.setLayoutX(x - 60);
+        boomLabel.setLayoutY(y - 24);
 
-        // Add to boardStack so it appears on top of everything
         guiController.boardStack.getChildren().add(boomLabel);
         boomLabel.toFront();
 
-        // Animate: scale up, then fade out
+        // Animation sequence
         ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(300), boomLabel);
         scaleTransition.setFromX(0.5);
         scaleTransition.setFromY(0.5);
@@ -86,9 +90,9 @@ class GuiControllerEffectManager {
         fadeTransition.setToValue(0.0);
 
         ParallelTransition parallelTransition = new ParallelTransition(scaleTransition, fadeTransition);
-        parallelTransition.setOnFinished(e -> {
-            guiController.boardStack.getChildren().remove(boomLabel);
-        });
+        parallelTransition.setOnFinished(e ->
+                guiController.boardStack.getChildren().remove(boomLabel)
+        );
         parallelTransition.play();
     }
 }

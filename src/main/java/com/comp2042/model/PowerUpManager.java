@@ -7,76 +7,89 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Manages power-up purchases, inventory, and skill points economy.
- * Tracks player's skill points earned from gameplay and manages power-up inventory.
- * Handles purchasing power-ups with skill points and using power-ups during gameplay.
+ * Manages the player's economic resources related to power-ups, including
+ * skill point accumulation, power-up inventory tracking, purchasing, and usage.
+ * This class is central to the meta-game progression system.
  *
  * @author COMP2042 Coursework
  */
 public class PowerUpManager {
-    private final Map<PowerUp, Integer> powerUpInventory; // PowerUp -> quantity owned
+    /** Map storing the inventory: associates each PowerUp type with its current quantity owned by the player. */
+    private final Map<PowerUp, Integer> powerUpInventory;
+
+    /** Observable property for the player's current total skill points, allowing for reactive UI binding. */
     private final IntegerProperty skillPoints;
 
+    /** Tracks fractional skill points to ensure precise accumulation of small score contributions. */
+    private double fractionalSkillPoints = 0.0;
+
     /**
-     * Constructs a new PowerUpManager.
-     * Initializes skill points to 0 and sets all power-up quantities to 0.
+     * Constructs a new PowerUpManager instance.
+     * Initializes the player's skill points to zero and sets the initial quantity
+     * of all available power-ups in the inventory to zero.
      */
     public PowerUpManager() {
         this.skillPoints = new SimpleIntegerProperty(0);
         this.powerUpInventory = new HashMap<>();
 
-        // Initialize all power-ups with 0 quantity
+        // Initialize all defined power-ups in the inventory with an owned quantity of 0
         for (PowerUp powerUp : PowerUp.values()) {
             powerUpInventory.put(powerUp, 0);
         }
     }
 
     /**
-     * Gets the skill points property for reactive UI binding.
+     * Provides access to the observable {@code IntegerProperty} representing the player's
+     * current skill points. This is used primarily for binding with JavaFX UI components.
      *
-     * @return the IntegerProperty representing current skill points
+     * @return The {@code IntegerProperty} tracking current skill points.
      */
     public IntegerProperty skillPointsProperty() {
         return skillPoints;
     }
 
     /**
-     * Gets the current skill points value.
+     * Retrieves the current integer value of the player's skill points.
      *
-     * @return the current number of skill points
+     * @return The total current number of skill points.
      */
     public int getSkillPoints() {
         return skillPoints.get();
     }
 
-    // Track fractional skill points (to accumulate even small scores)
-    private double fractionalSkillPoints = 0.0;
 
     /**
-     * Awards skill points based on score earned.
-     * Converts score to skill points at a rate of 1 skill point per 10 score.
-     * Accumulates fractional points so even small scores contribute over time.
+     * Awards skill points to the player based on the score earned during a segment of gameplay.
+     * The conversion rate is 1 skill point for every 10 score points earned. Fractional accumulation
+     * is handled internally to prevent loss of precision from small scores.
      *
-     * @param scoreEarned the score points earned by the player
+     * @param scoreEarned The score points accumulated by the player.
      */
     public void awardSkillPoints(int scoreEarned) {
-        // Add fractional points (0.1 skill point per 1 score)
+        // Add fractional points based on a 1:10 score-to-skill-point ratio.
         fractionalSkillPoints += scoreEarned / 10.0;
 
-        // Convert fractional points to whole skill points
+        // Convert the accumulated fractional points into whole skill points.
         int wholePoints = (int) fractionalSkillPoints;
         if (wholePoints > 0) {
+            // Update the observable skill points property.
             skillPoints.set(skillPoints.get() + wholePoints);
-            fractionalSkillPoints -= wholePoints; // Keep the remainder
+            // Deduct the whole points awarded, retaining any remainder for future accumulation.
+            fractionalSkillPoints -= wholePoints;
         }
     }
 
     /**
-     * Purchase a power-up
-     * @return true if purchase was successful
+     * Attempts to purchase a specified power-up. The transaction is successful only if
+     * the player has sufficient skill points to cover the cost.
+     *
+     * @param powerUp The {@code PowerUp} type to be purchased.
+     * @return {@code true} if the purchase was successful and the inventory was updated;
+     * {@code false} otherwise (due to insufficient funds).
      */
     public boolean purchasePowerUp(PowerUp powerUp) {
         if (skillPoints.get() >= powerUp.getCost()) {
+            // Deduct cost and update inventory count.
             skillPoints.set(skillPoints.get() - powerUp.getCost());
             powerUpInventory.put(powerUp, powerUpInventory.get(powerUp) + 1);
             return true;
@@ -85,11 +98,15 @@ public class PowerUpManager {
     }
 
     /**
-     * Use a power-up (consume one from inventory)
-     * @return true if power-up was available and used
+     * Consumes one instance of the specified power-up from the player's inventory.
+     *
+     * @param powerUp The {@code PowerUp} type to be used.
+     * @return {@code true} if the power-up was available in the inventory and successfully used
+     * (quantity decreased); {@code false} if the inventory for that power-up was empty.
      */
     public boolean usePowerUp(PowerUp powerUp) {
         if (powerUpInventory.get(powerUp) > 0) {
+            // Decrease the quantity in the inventory.
             powerUpInventory.put(powerUp, powerUpInventory.get(powerUp) - 1);
             return true;
         }
@@ -97,19 +114,27 @@ public class PowerUpManager {
     }
 
     /**
-     * Get quantity of a power-up owned
+     * Retrieves the current quantity of a specific power-up held in the player's inventory.
+     *
+     * @param powerUp The {@code PowerUp} type to query.
+     * @return The integer count of the specified power-up.
      */
     public int getPowerUpQuantity(PowerUp powerUp) {
+        // The map is guaranteed to contain all PowerUp values due to constructor initialization.
         return powerUpInventory.get(powerUp);
     }
 
     /**
-     * Reset all power-ups (for new game)
+     * Resets the entire power-up management system to its initial state, typically
+     * called at the start of a new game session. All power-up quantities and skill
+     * points are set back to zero.
      */
     public void reset() {
+        // Reset inventory quantities to zero
         for (PowerUp powerUp : PowerUp.values()) {
             powerUpInventory.put(powerUp, 0);
         }
+        // Reset observable skill points and fractional tracker
         skillPoints.set(0);
         fractionalSkillPoints = 0.0;
     }

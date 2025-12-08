@@ -71,7 +71,7 @@
 
     <!-- MAIN MENU OVERLAY -->
     <StackPane fx:id="mainMenuOverlay"
-               style="-fx-background-image: url('NeonLights_Main.jpg'); -fx-background-size: cover; -fx-background-position: center center;"
+               style="-fx-background-image: url('NeonLights_Main.png'); -fx-background-size: cover; -fx-background-position: center center;"
                alignment="CENTER">
         <VBox alignment="CENTER" spacing="40">
             <!-- Title -->

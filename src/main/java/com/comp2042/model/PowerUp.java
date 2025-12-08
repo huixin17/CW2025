@@ -1,15 +1,21 @@
 package com.comp2042.model;
 
 /**
- * Enum representing available power-ups that can be purchased with skill points.
- * Each power-up has a name, cost, and description. Power-ups provide special
- * abilities to help the player during gameplay.
+ * Enumeration representing distinct power-up features available for player use.
+ * Each constant defines a unique power-up, storing its display name, associated
+ * skill point cost, and a brief functional description. These power-ups are
+ * designed to offer temporary strategic advantages during gameplay.
  *
  * @author COMP2042 Coursework
  */
 public enum PowerUp {
+    /** Clears the bottom 3 rows of the game matrix. */
     ROW_CLEARER("Row Clearer", 0, "Clears the bottom 3 rows"),
+
+    /** Temporarily reduces the rate at which blocks fall. */
     SLOW_MOTION("Slow Motion", 0, "Slows falling speed for 10 seconds"),
+
+    /** The next placed piece triggers an explosion, clearing a surrounding 4x4 area. */
     BOMB_PIECE("Bomb Piece", 0, "Next piece explodes in 4x4 area on placement");
 
     private final String name;
@@ -17,11 +23,11 @@ public enum PowerUp {
     private final String description;
 
     /**
-     * Constructs a PowerUp enum value.
+     * Constructs a PowerUp enum value, initializing its descriptive properties.
      *
-     * @param name the display name of the power-up
-     * @param cost the skill points cost to purchase (currently 0 for all)
-     * @param description the description of what the power-up does
+     * @param name The human-readable name for display in the user interface.
+     * @param cost The amount of skill points required to activate the power-up.
+     * @param description A concise summary of the power-up's effect on gameplay.
      */
     PowerUp(String name, int cost, String description) {
         this.name = name;
@@ -30,27 +36,27 @@ public enum PowerUp {
     }
 
     /**
-     * Gets the display name of the power-up.
+     * Retrieves the display name of the power-up.
      *
-     * @return the power-up name
+     * @return The descriptive name of the power-up.
      */
     public String getName() {
         return name;
     }
 
     /**
-     * Gets the skill points cost to purchase this power-up.
+     * Retrieves the skill points cost associated with purchasing or activating this power-up.
      *
-     * @return the cost in skill points
+     * @return The integer cost in skill points.
      */
     public int getCost() {
         return cost;
     }
 
     /**
-     * Gets the description of what this power-up does.
+     * Retrieves the detailed explanation of the power-up's function.
      *
-     * @return the power-up description
+     * @return The descriptive text outlining the gameplay effect.
      */
     public String getDescription() {
         return description;

@@ -9,71 +9,100 @@ import com.comp2042.controller.game.MoveEvent;
 import com.comp2042.model.PowerUp;
 
 /**
- * Handles keyboard input for GuiController.
- * Processes keyboard events for game controls including movement (arrow keys/WASD),
- * rotation, hard drop (space), hold (C), power-up activation (1-3), pause/resume
- * (ESC/P), and shop toggle (B). Extracted from GuiController to apply Single
- * Responsibility Principle.
- *
- * @author COMP2042 Coursework
+ * Keyboard input handler for the GUI layer.
+ * This class listens for user key presses and translates them into gameplay
+ * actions—movement, rotation, drops, power-up usage, pausing, and menu toggles.
+ * Separating this logic keeps GuiController focused on rendering and game flow.
  */
 class GuiControllerKeyboardHandler {
 
     private final GuiController guiController;
 
     /**
-     * Constructs a new GuiControllerKeyboardHandler.
+     * Creates a keyboard handler tied to the given GUI controller.
      *
-     * @param guiController the GuiController instance to handle input for
+     * @param guiController the main controller responsible for the game screen
      */
     GuiControllerKeyboardHandler(GuiController guiController) {
         this.guiController = guiController;
     }
 
     /**
-     * Creates and returns a key event handler for the game panel.
-     * The handler processes all keyboard input and delegates actions to the
-     * appropriate game controller methods.
+     * Builds and returns a unified key handler for the game area.
+     * Every key event is processed here and mapped to an appropriate
+     * game action through the GuiController and its event listener.
      *
-     * @return EventHandler for KeyEvent that processes game input
+     * @return a KeyEvent handler that manages all gameplay shortcuts
      */
     EventHandler<KeyEvent> createKeyHandler() {
         return new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent keyEvent) {
-                if (guiController.isPause.getValue() == Boolean.FALSE && guiController.isGameOver.getValue() == Boolean.FALSE) {
+
+                // --- Gameplay controls (only when not paused or game-over) ---
+                if (!guiController.isPause.getValue() && !guiController.isGameOver.getValue()) {
+
+                    // Move left
                     if (keyEvent.getCode() == KeyCode.LEFT || keyEvent.getCode() == KeyCode.A) {
-                        guiController.refreshBrick(guiController.eventListener.onLeftEvent(new MoveEvent(EventType.LEFT, EventSource.USER)));
+                        guiController.refreshBrick(
+                                guiController.eventListener.onLeftEvent(
+                                        new MoveEvent(EventType.LEFT, EventSource.USER)
+                                )
+                        );
                         keyEvent.consume();
                     }
+
+                    // Move right
                     if (keyEvent.getCode() == KeyCode.RIGHT || keyEvent.getCode() == KeyCode.D) {
-                        guiController.refreshBrick(guiController.eventListener.onRightEvent(new MoveEvent(EventType.RIGHT, EventSource.USER)));
+                        guiController.refreshBrick(
+                                guiController.eventListener.onRightEvent(
+                                        new MoveEvent(EventType.RIGHT, EventSource.USER)
+                                )
+                        );
                         keyEvent.consume();
                     }
+
+                    // Rotate piece
                     if (keyEvent.getCode() == KeyCode.UP || keyEvent.getCode() == KeyCode.W) {
-                        guiController.refreshBrick(guiController.eventListener.onRotateEvent(new MoveEvent(EventType.ROTATE, EventSource.USER)));
+                        guiController.refreshBrick(
+                                guiController.eventListener.onRotateEvent(
+                                        new MoveEvent(EventType.ROTATE, EventSource.USER)
+                                )
+                        );
                         keyEvent.consume();
                     }
+
+                    // Soft drop
                     if (keyEvent.getCode() == KeyCode.DOWN || keyEvent.getCode() == KeyCode.S) {
                         guiController.moveDown(new MoveEvent(EventType.DOWN, EventSource.USER));
                         keyEvent.consume();
                     }
+
+                    // Hard drop
                     if (keyEvent.getCode() == KeyCode.SPACE) {
                         guiController.hardDrop(new MoveEvent(EventType.HARD_DROP, EventSource.USER));
                         keyEvent.consume();
                     }
+
+                    // Hold piece
                     if (keyEvent.getCode() == KeyCode.C) {
-                        guiController.refreshBrick(guiController.eventListener.onHoldEvent(new MoveEvent(EventType.HOLD, EventSource.USER)));
+                        guiController.refreshBrick(
+                                guiController.eventListener.onHoldEvent(
+                                        new MoveEvent(EventType.HOLD, EventSource.USER)
+                                )
+                        );
                         keyEvent.consume();
                     }
 
-                    // Power-up shortcuts: 1, 2, 3 to use power-ups
+                    // --- Power-up usage (1–3) ---
                     if (keyEvent.getCode() == KeyCode.DIGIT1 || keyEvent.getCode() == KeyCode.NUMPAD1) {
                         if (guiController.gameController != null) {
                             PowerUp[] powerUps = PowerUp.values();
                             if (powerUps.length > 0) {
-                                guiController.gameController.activatePowerUp(powerUps[0]); // Row Clearer
+                                guiController.gameController.activatePowerUp(powerUps[0]);
                                 guiController.updatePowerUpUI();
+
+                                // Row clearer refreshes background
                                 if (powerUps[0] == PowerUp.ROW_CLEARER) {
                                     guiController.refreshGameBackground(guiController.gameController.getBoard().getBoardMatrix());
                                 }
@@ -81,21 +110,23 @@ class GuiControllerKeyboardHandler {
                         }
                         keyEvent.consume();
                     }
+
                     if (keyEvent.getCode() == KeyCode.DIGIT2 || keyEvent.getCode() == KeyCode.NUMPAD2) {
                         if (guiController.gameController != null) {
                             PowerUp[] powerUps = PowerUp.values();
                             if (powerUps.length > 1) {
-                                guiController.gameController.activatePowerUp(powerUps[1]); // Slow Motion
+                                guiController.gameController.activatePowerUp(powerUps[1]);
                                 guiController.updatePowerUpUI();
                             }
                         }
                         keyEvent.consume();
                     }
+
                     if (keyEvent.getCode() == KeyCode.DIGIT3 || keyEvent.getCode() == KeyCode.NUMPAD3) {
                         if (guiController.gameController != null) {
                             PowerUp[] powerUps = PowerUp.values();
                             if (powerUps.length > 2) {
-                                guiController.gameController.activatePowerUp(powerUps[2]); // Bomb Piece
+                                guiController.gameController.activatePowerUp(powerUps[2]);
                                 guiController.updatePowerUpUI();
                             }
                         }
@@ -103,8 +134,9 @@ class GuiControllerKeyboardHandler {
                     }
                 }
 
-                // Power-up purchase shortcuts: Shift+1, Shift+2, Shift+3 to buy
+                // --- Power-up purchasing (Shift + 1/2/3) ---
                 if (keyEvent.isShiftDown()) {
+
                     if (keyEvent.getCode() == KeyCode.DIGIT1 || keyEvent.getCode() == KeyCode.NUMPAD1) {
                         if (guiController.gameController != null) {
                             PowerUp[] powerUps = PowerUp.values();
@@ -115,6 +147,7 @@ class GuiControllerKeyboardHandler {
                         }
                         keyEvent.consume();
                     }
+
                     if (keyEvent.getCode() == KeyCode.DIGIT2 || keyEvent.getCode() == KeyCode.NUMPAD2) {
                         if (guiController.gameController != null) {
                             PowerUp[] powerUps = PowerUp.values();
@@ -125,6 +158,7 @@ class GuiControllerKeyboardHandler {
                         }
                         keyEvent.consume();
                     }
+
                     if (keyEvent.getCode() == KeyCode.DIGIT3 || keyEvent.getCode() == KeyCode.NUMPAD3) {
                         if (guiController.gameController != null) {
                             PowerUp[] powerUps = PowerUp.values();
@@ -137,12 +171,15 @@ class GuiControllerKeyboardHandler {
                     }
                 }
 
+                // Start new game
                 if (keyEvent.getCode() == KeyCode.N) {
                     guiController.newGame(null);
                 }
+
+                // Pause / resume
                 if (keyEvent.getCode() == KeyCode.P || keyEvent.getCode() == KeyCode.ESCAPE) {
-                    // If countdown is showing, cancel it and stay paused
-                    if (guiController.countdownOverlay != null && guiController.countdownOverlay.isVisible()) {
+                    if (guiController.countdownOverlay != null &&
+                            guiController.countdownOverlay.isVisible()) {
                         guiController.cancelCountdown();
                         keyEvent.consume();
                     } else {
@@ -150,6 +187,8 @@ class GuiControllerKeyboardHandler {
                         keyEvent.consume();
                     }
                 }
+
+                // Toggle power-up shop
                 if (keyEvent.getCode() == KeyCode.B) {
                     guiController.togglePowerUpsOverlay();
                     keyEvent.consume();
